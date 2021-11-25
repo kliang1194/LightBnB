@@ -8,7 +8,7 @@ const pool = new Pool({
   password: '123',
   host: 'localhost',
   database: 'lightbnb'
-})
+});
 
 /// Users
 
@@ -17,18 +17,20 @@ const pool = new Pool({
  * @param {String} email The email of the user.
  * @return {Promise<{}>} A promise to the user.
  */
-const getUserWithEmail = function(email) {
-  let user;
-  for (const userId in users) {
-    user = users[userId];
-    if (user.email.toLowerCase() === email.toLowerCase()) {
-      break;
-    } else {
-      user = null;
-    }
-  }
-  return Promise.resolve(user);
-}
+ const getUserWithEmail = function (email) {
+  const queryString = `
+  SELECT *
+  FROM users
+  WHERE email= $1`;
+
+  return pool
+    .query(queryString, [email.toLowerCase()])
+    .then(result => result.rows[0] || null)
+    .catch(err => {
+      console.log(err.message);
+    });
+};
+  
 exports.getUserWithEmail = getUserWithEmail;
 
 /**
@@ -37,8 +39,19 @@ exports.getUserWithEmail = getUserWithEmail;
  * @return {Promise<{}>} A promise to the user.
  */
 const getUserWithId = function(id) {
-  return Promise.resolve(users[id]);
-}
+  const queryString = `
+  SELECT *
+  FROM users
+  WHERE id = $1;`;
+
+  return pool
+    .query(queryString, [id])
+    .then(result => result.rows[0] || null)
+    .catch(err => {
+      console.log(err.message);
+    });
+};
+
 exports.getUserWithId = getUserWithId;
 
 
@@ -48,11 +61,20 @@ exports.getUserWithId = getUserWithId;
  * @return {Promise<{}>} A promise to the user.
  */
 const addUser =  function(user) {
-  const userId = Object.keys(users).length + 1;
-  user.id = userId;
-  users[userId] = user;
-  return Promise.resolve(user);
-}
+  const {name, email, password} = user;
+const queryString = `
+INSERT INTO users (name, email, password)
+VALUES ($1, $2, $3)
+RETURNING *`;
+
+return pool
+.query(queryString, [name, email.toLowerCase(), password])
+.then((result) => result.rows[0])
+.catch(err => {
+  console.log(err.message);
+});
+};
+
 exports.addUser = addUser;
 
 /// Reservations
@@ -80,7 +102,7 @@ exports.getAllReservations = getAllReservations;
     .query(`SELECT * FROM properties LIMIT $1`, [limit])
     .then((result) => result.rows)
     .catch((err) => {
-      console.log(err.message)
+      console.log(err.message);
     });
 };
 
