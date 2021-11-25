@@ -17,7 +17,7 @@ const pool = new Pool({
  * @param {String} email The email of the user.
  * @return {Promise<{}>} A promise to the user.
  */
- const getUserWithEmail = function (email) {
+const getUserWithEmail = function(email) {
   const queryString = `
   SELECT *
   FROM users
@@ -62,17 +62,17 @@ exports.getUserWithId = getUserWithId;
  */
 const addUser =  function(user) {
   const {name, email, password} = user;
-const queryString = `
+  const queryString = `
 INSERT INTO users (name, email, password)
 VALUES ($1, $2, $3)
 RETURNING *`;
 
-return pool
-.query(queryString, [name, email.toLowerCase(), password])
-.then((result) => result.rows[0])
-.catch(err => {
-  console.log(err.message);
-});
+  return pool
+    .query(queryString, [name, email.toLowerCase(), password])
+    .then((result) => result.rows[0])
+    .catch(err => {
+      console.log(err.message);
+    });
 };
 
 exports.addUser = addUser;
@@ -85,8 +85,24 @@ exports.addUser = addUser;
  * @return {Promise<[{}]>} A promise to the reservations.
  */
 const getAllReservations = function(guest_id, limit = 10) {
-  return getAllProperties(null, 2);
-}
+  const queryString = `
+  SELECT * 
+  FROM properties
+  JOIN reservations ON properties.id = reservations.property_id
+  JOIN property_reviews ON properties.id = property_reviews.property_id
+  WHERE reservations.guest_id = $1 AND reservations.start_date > Now()::date
+  LIMIT $2`;
+
+  return pool
+    .query(queryString, [guest_id, limit])
+    .then((result) => result.rows)
+    .catch(err => {
+      console.log(err.message);
+    });
+};
+
+
+
 exports.getAllReservations = getAllReservations;
 
 /// Properties
@@ -97,7 +113,7 @@ exports.getAllReservations = getAllReservations;
  * @param {*} limit The number of results to return.
  * @return {Promise<[{}]>}  A promise to the properties.
  */
- const getAllProperties = (options, limit = 10) => {
+const getAllProperties = (options, limit = 10) => {
   return pool
     .query(`SELECT * FROM properties LIMIT $1`, [limit])
     .then((result) => result.rows)
@@ -119,5 +135,5 @@ const addProperty = function(property) {
   property.id = propertyId;
   properties[propertyId] = property;
   return Promise.resolve(property);
-}
+};
 exports.addProperty = addProperty;
